@@ -6,10 +6,6 @@ int sum(int arg1, int arg2){
 }
 using namespace std;
 
-#define FALSE 0
-#define TRUE 1
-#define NOTFALSE TRUE
-#define PRODUCT (a*b)
 
 int main(){
 	a = 3;

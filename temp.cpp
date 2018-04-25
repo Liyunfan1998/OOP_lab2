@@ -1,3 +1,7 @@
+//
+// Created by Yunfan Li on 2018/4/20.
+//
+
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -6,9 +10,9 @@
 using namespace std;
 
 regex regex1("^#include\\s+\"[A-Za-z]+\\.h\"$");
-regex regex2("^#define\\s+");
-regex regex3("^#define\\s+[^\\s:]+\\s+[^\\s:]+$");
-regex regex4("^#define\\s+[^\\s:]+$");
+regex regex2("^#define\\s+");//#define PART1
+regex regex3("^#define\\s+[^\\s:]+\\s+[^\\s:]+$");//#define Cong(arg) "PLUSES "#arg
+regex regex4("^#define\\s+[^\\s:]+$");//#define A 1
 regex regex5("^#ifndef\\s+");
 regex regex6("^#endif");
 regex regex7("^#undef\\s+[^\\s:]+$");
@@ -86,7 +90,7 @@ void readFromFile(vector<string> &cpp, string inPath) {
     OpenFile.close();
 }
 
-void writeOutFile(string outPath, vector<string> &cpp) {
+vector<string> writeOutFile(string outPath, vector<string> &cpp) {
     ofstream OutPut(outPath);
     if (OutPut.is_open()) {
         for (int i = 0; i < cpp.size(); i++) {
@@ -149,6 +153,7 @@ void initDefineFlag() {
         define[i].push_back("0");
 }
 
+
 void handleMacro(vector<regex> &macro) {
     for (int i = 0; i < part.size(); i++) {
         regex reg(" " + part[i][1]);
@@ -180,7 +185,7 @@ void handlePrams(vector<regex> &define_reg, vector<regex> &param_name, vector<re
     }
 }
 
-int handleUndef(vector<string> &cpp, int i) {
+void handleUndef(vector<string> &cpp, int i) {
     //处理#undef引起的标识符状态的改变
     if (regex_match(cpp[i], regex7)) {
         string str = split(cpp[i], ' ')[1];
@@ -194,10 +199,9 @@ int handleUndef(vector<string> &cpp, int i) {
         if (i > 0)
             i--;
     }
-    return i;
 }
 
-int handleIfdef(vector<string> &cpp, int i) {
+void handleIfdef(vector<string> &cpp, int i) {
     //处理#ifdef
     if (regex_search(cpp[i], regex9)) {
         string def = split(cpp[i], ' ')[1];
@@ -232,10 +236,9 @@ int handleIfdef(vector<string> &cpp, int i) {
         if (i > 0)
             i--;
     }
-    return i;
 }
 
-int handleIfndef(vector<string> &cpp, int i) {
+void handleIfndef(vector<string> &cpp, int i) {
     //处理#ifndef
     if (regex_search(cpp[i], regex5)) {
         string def = split(cpp[i], ' ')[1];
@@ -267,10 +270,9 @@ int handleIfndef(vector<string> &cpp, int i) {
         if (i > 0)
             i--;
     }
-    return i;
 }
 
-int handleIf(vector<string> &cpp, int i) {
+void handleIf(vector<string> &cpp, int i) {
     //处理#if
     if (regex_search(cpp[i], regex8)) {
         string str = split(cpp[i], ' ')[1];
@@ -300,7 +302,6 @@ int handleIf(vector<string> &cpp, int i) {
         if (i > 0)
             i--;
     }
-    return i;
 }
 
 void handleMacroWithPrams(vector<string> &cpp, int i, vector<regex> &param_name) {
@@ -348,7 +349,7 @@ void handleMacroWithPrams(vector<string> &cpp, int i, vector<regex> &param_name)
 
 }
 
-int handleDef(vector<string> &cpp, int i, vector<regex> &define_reg) {
+void handleDef(vector<string> &cpp, int i, vector<regex> &define_reg) {
     if (regex_search(cpp[i], regex2)) {
         for (int j = 0; j < define_reg.size(); j++) {
             //将标识符的状态设置为1，表示标识符开始起作用
@@ -361,7 +362,6 @@ int handleDef(vector<string> &cpp, int i, vector<regex> &define_reg) {
             }
         }
     }
-    return i;
 }
 
 void doTheReplacement(vector<string> &cpp, vector<regex> &macro, vector<regex> &unmacro) {
@@ -382,13 +382,20 @@ void doTheReplacement(vector<string> &cpp, vector<regex> &macro, vector<regex> &
     }
 }
 
-int main(int argc, char **argv) {
+
+//int main(int argc, char **argv) {
+
+int main() {
+    string argv[3];
+    argv[1] = "demo.cpp";
+    argv[2] = "out2.cpp";
     string inPath = (string) (argv[1]);
     string outPath = (string) (argv[2]);
+
     vector<string> cpp;
-    string line;
     readFromFile(cpp, inPath);
 
+    string line;
     for (int i = 0; i < cpp.size(); i++) {
         //从自定义头文件原封不动copy到outfile中
         // 处理include
@@ -398,7 +405,7 @@ int main(int argc, char **argv) {
     }
     initDefineFlag();
 
-    //优化宏的递归
+    //链式替换（优化）
     for (int i = 0; i < part.size(); i++) {
         for (int j = 0; j < part.size(); j++) {
             if (part[i][2] == part[j][1]) {
@@ -421,20 +428,15 @@ int main(int argc, char **argv) {
 
     //处理各种预编译符
     for (int i = 0; i < cpp.size(); i++) {
-        i = handleDef(cpp, i, define_reg);
-        i = handleUndef(cpp, i);
-        i = handleIfdef(cpp, i);
-        i = handleIfndef(cpp, i);
-        i = handleIf(cpp, i);
+        handleDef(cpp, i, define_reg);
+        handleUndef(cpp, i);
+        handleIfdef(cpp, i);
+        handleIfndef(cpp, i);
+        handleIf(cpp, i);
         handleMacroWithPrams(cpp, i, param_name);
     }
-
-    //进行宏替换
     doTheReplacement(cpp, macro, unmacro);
 
     writeOutFile(outPath, cpp);
-
-//    for (int i = 0; i < cpp.size(); i++)
-//        cout << cpp[i] << endl;
     return 0;
 }
