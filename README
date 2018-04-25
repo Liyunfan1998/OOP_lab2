@@ -1,0 +1,4 @@
+https://github.com/Liyunfan1998/OOP_lab2
+
+g++ main.cpp -o main --std=c++11
+./main demo.cpp out.cpp
